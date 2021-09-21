@@ -1,0 +1,64 @@
+version: "3"
+
+services:
+
+  flask:
+    build: ./flask_container
+    container_name: flask
+    restart: always
+    environment:
+      - APP_NAME=Myflaskapp
+    expose:
+      - 5000
+    links:
+      - db
+      - rabbitmq
+    depends_on:
+      - db
+      - rabbitmq
+    volumes:
+      - ./flask_container:/app
+
+  nginx:
+    build: ./nginx_container
+    container_name: nginx
+    restart: always
+    ports:
+      - "3000:80"
+
+  db:
+    image: mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./backup:/data/db
+
+  rabbitmq:
+    image: rabbitmq
+    restart: always
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+    ports:
+      - "5673:5672"
+      - "15672:15672"
+
+  worker_1:
+    build: ./flask_container
+    restart: always
+    hostname: worker_1
+    entrypoint: celery
+    command: -A workerA worker --loglevel=info
+    volumes:
+      - ./flask_container:/app
+    links:
+      - rabbitmq
+    depends_on:
+      - rabbitmq
+
+
+
+
+
+
